@@ -8,6 +8,7 @@ class DiscordBot:
     token = os.environ["TOKEN"]
     cogs = [
         "cogs.admin",
-        "cogs.greetings"
+        "cogs.report",
+        "cogs.streaming"
     ]
 

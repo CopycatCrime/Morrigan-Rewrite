@@ -5,29 +5,25 @@ import traceback
 import discord
 from discord.ext import commands
 from config import DiscordBot
+import cogs.streaming as streaming
 
 intent = discord.Intents.all()
-
-
-
-description = """
-Hello! I am a bot written by Danny to provide some nice utilities.
-"""
 
 class Morrigan(commands.Bot):
     def __init__(self, **kwargs):
         intents = discord.Intents.all()
-        super().__init__(command_prefix=commands.when_mentioned_or('m/'), intents=intents, **kwargs, pm_help=None,
-                         help_attrs=dict(hidden=True))
+        super().__init__(command_prefix=commands.when_mentioned_or('$'), intents=intents, **kwargs, pm_help=None, help_attrs=dict(hidden=True))
 
 
     async def setup_hook(self) -> None:
+        self.add_view(streaming.PersistentView())
         for extension in DiscordBot.cogs:
             try:
                 await self.load_extension(extension)
             except Exception as e:
                 print('Could not load extension {0} due to {1.__class__.__name__}: {1}'.format(
                     extension, e))
+        await self.tree.sync()
 
     async def on_ready(self):
         print('Logged on as {0} (ID: {0.id})'.format(self.user))
@@ -44,5 +40,10 @@ class Morrigan(commands.Bot):
 bot = Morrigan()
 
 # write general commands here
+
+@bot.tree.command()
+async def hello(interaction: discord.Interaction):
+    """Says hello!"""
+    await interaction.response.send_message(f'Hi, {interaction.user.mention}')
 
 bot.run(DiscordBot.token)
