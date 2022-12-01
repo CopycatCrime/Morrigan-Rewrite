@@ -3,43 +3,13 @@ import discord
 from discord.ext import commands
 
 
-class Dropdown(discord.ui.Select):
-    def __init__(self):
-
-        # Set the options that will be presented inside the dropdown
-        options = [
-            discord.SelectOption(label='Red', description='Your favourite colour is red', emoji='🟥'),
-            discord.SelectOption(label='Green', description='Your favourite colour is green', emoji='🟩'),
-            discord.SelectOption(label='Blue', description='Your favourite colour is blue', emoji='🟦'),
-        ]
-
-        # The placeholder is what will be shown when no option is chosen
-        # The min and max values indicate we can only pick one of the three options
-        # The options parameter defines the dropdown options. We defined this above
-        super().__init__(placeholder='Choose your favourite colour...', min_values=1, max_values=1, options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        # Use the interaction object to send a response message containing
-        # the user's favourite colour or choice. The self object refers to the
-        # Select object, and the values attribute gets a list of the user's
-        # selected options. We only want the first one.
-        await interaction.response.send_message(f'Your favourite colour is {self.values[0]}')
-
-
-class DropdownView(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-
-        # Adds the dropdown to our view object.
-        self.add_item(Dropdown())  
-
-        
 class PersistentView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
     async def CheckStreamingStatus(self, interaction: discord.Interaction) -> bool:
         """配信に参加しているかどうかを判定します。配信者であるかどうかの判定は行いません。"""
+
         if not interaction.user.voice is None and interaction.user.voice.channel.category_id == 1044542086734696458:
             return True
         await interaction.response.send_message('配信に参加していないため操作を完了することができません。', ephemeral=True, delete_after=15)
@@ -47,15 +17,16 @@ class PersistentView(discord.ui.View):
     
     async def CheckStreamer(self, interaction: discord.Interaction) -> bool:
         """配信者であるかどうかの判定を行います。CheckStreamingStatusの実行後の使用に限られます。"""
+        
         if interaction.user.voice.channel.overwrites_for(interaction.user).mute_members:
             return True
         await interaction.response.send_message('あなたはこのチャンネルの配信者でないためこの操作を完了することができません。', ephemeral=True, delete_after=15)
         return False
     
-    async def ChangeStreamer(self, channel: discord.channel, streamer: discord.Member):
+    async def ChangeStreamer(self, channel: discord.channel, streamer: discord.Member) -> None:
         await channel.edit(overwrites=StreamingManagement.overwrites(streamer))
 
-    async def AutoDelete(self, channel: discord.channel):
+    async def AutoDelete(self, channel: discord.channel) -> None:
         await channel.edit(overwrites={})
 
     @discord.ui.button(label='配信名変更', style=discord.ButtonStyle.grey, custom_id='persistent_view:change_stream_name')
@@ -99,10 +70,10 @@ class Dropdown(discord.ui.Select):
         overwrite = {streamer: discord.PermissionOverwrite(mute_members=True)}
         return overwrite
 
-    async def ChangeStreamer(self, streaming_channel: discord.channel, streamer: discord.member):
+    async def ChangeStreamer(self, streaming_channel: discord.channel, streamer: discord.member) -> None:
         await streaming_channel.edit(overwrites=self.overwrites(streamer))
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: discord.Interaction) -> None:
         streamer = interaction.guild.get_member(int(self.values[0]))
         await self.ChangeStreamer(interaction.user.voice.channel, streamer)
         await interaction.response.send_message(f'配信者を{streamer.mention}に変更しました', ephemeral=True, delete_after=15)
@@ -115,6 +86,15 @@ class DropdownView(discord.ui.View):
         self.add_item(Dropdown(members))
 
 
+class Questionnaire(discord.ui.Modal, title='配信名を変更しようとしています...'):
+    streaming_name = discord.ui.TextInput(label='配信名を入力してください')
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f'配信名を{self.streaming_name}に変更します', ephemeral=True, delete_after=15)
+        print(self.streaming_name)
+        await StreamingManagement.RenameStreamingChannel(StreamingManagement, interaction, str(self.streaming_name))
+
+
 class StreamingManagement(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -123,24 +103,14 @@ class StreamingManagement(commands.Cog):
         overwrite = {streamer: discord.PermissionOverwrite(mute_members=True)}
         return overwrite
 
-    async def ChangeStreamer(self, streaming_channel: discord.channel, streamer: discord.member):
+    async def ChangeStreamer(self, streaming_channel: discord.channel, streamer: discord.member) -> None:
         await streaming_channel.edit(overwrites=StreamingManagement.overwrites(streamer))
 
     async def ChangeStreamingName(self, interaction: discord.Interaction):
-        def check(m):
-            return m.author == interaction.user
-
-        deletes = []
-        try:
-            deletes.append(await interaction.response.send_message('配信名を変更します。変更後の名前を入力してください。', ephemeral=True))
-            msg = await self.bot.wait_for('message', timeout=60.0, check=check)
-            deletes.append(msg)
-        except asyncio.TimeoutError:
-            deletes.append(await interaction.response.send_message('タイムアウトしました', ephemeral=True))
-        else:
-            deletes.append(await interaction.response.send_message(f"配信の名前を{msg.content}に変更しました", ephemeral=True))
-        await asyncio.sleep(5)
-        await interaction.channel.delete_messages(deletes)
+        await interaction.response.send_modal(Questionnaire())
+    
+    async def RenameStreamingChannel(self, interaction: discord.Interaction, name: str):
+        await interaction.user.voice.channel.edit(name=name)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.member, before: discord.VoiceState, after: discord.VoiceState):
@@ -168,13 +138,6 @@ class StreamingManagement(commands.Cog):
                 await CloseStreamingChannel(member, before.channel)
 
     @commands.command()
-    async def colour(self, ctx):
-        """Sends a message with our dropdown containing colours"""
-
-        return
-
-
-    @commands.command()
     @commands.is_owner()
     async def makeButton(self, ctx):
         embed=discord.Embed(title="配信情報変更パネル", description="このメッセージの下にあるボタンを押すことで、自分の配信に限り配信の情報を変更することができます！ 変更したい配信に接続したうえでボタンを押してください。自分が所有している配信でない場合はエラーとなります。", color=0x00ff7f)
@@ -184,8 +147,7 @@ class StreamingManagement(commands.Cog):
         embed.add_field(name="自動削除解除", value="配信者が切断した時の削除をキャンセルします(配信枠が終了した場合は削除されます)", inline=True)
         embed.set_footer(text="配信情報変更パネル", icon_url=ctx.guild.icon)
         await ctx.channel.send(embed=embed, view=PersistentView())
-
-
+        
 
 async def setup(bot):
     await bot.add_cog(StreamingManagement(bot))
