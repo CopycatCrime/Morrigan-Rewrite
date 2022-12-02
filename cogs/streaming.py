@@ -104,7 +104,7 @@ class StreamingManagementPanel(discord.ui.View):
 
 
 class Dropdown(discord.ui.Select):
-    def __init__(self, members: dict[discord.Member]):
+    def __init__(self, members):
         options = []
         for member in members:
             options.append(
