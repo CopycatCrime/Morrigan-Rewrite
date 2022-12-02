@@ -36,7 +36,7 @@ class StreamingManagementFunctions:
         self.channel = channel
 
     @staticmethod
-    def overwrites(streamer: discord.member) -> dict[Any, PermissionOverwrite]:
+    def overwrites(streamer: discord.member):
         """配信部屋のパーミッションを変更します"""
 
         overwrite = {streamer: discord.PermissionOverwrite(mute_members=True)}
@@ -139,7 +139,7 @@ class StreamingManagement(commands.Cog):
         self.bot = bot
 
     @staticmethod
-    def overwrites(streamer: discord.member) -> dict[Any, PermissionOverwrite]:
+    def overwrites(streamer: discord.member):
         """配信部屋のパーミッションを変更します"""
 
         overwrite = {streamer: discord.PermissionOverwrite(mute_members=True)}
