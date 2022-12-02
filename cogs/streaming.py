@@ -1,14 +1,7 @@
-import asyncio
-from typing import Dict, Any
-
+from typing import Any
 import discord
 from discord import PermissionOverwrite
 from discord.ext import commands
-
-
-def overwrites(streamer: discord.member) -> dict[Any, PermissionOverwrite]:
-    overwrite = {streamer: discord.PermissionOverwrite(mute_members=True)}
-    return overwrite
 
 
 class StatusCheck:
@@ -42,11 +35,18 @@ class StreamingManagementFunctions:
     def __init__(self, channel: discord.channel):
         self.channel = channel
 
+    @staticmethod
+    def overwrites(streamer: discord.member) -> dict[Any, PermissionOverwrite]:
+        """配信部屋のパーミッションを変更します"""
+
+        overwrite = {streamer: discord.PermissionOverwrite(mute_members=True)}
+        return overwrite
+
     async def change_streamer(self, streamer: discord.Member) -> None:
         """配信者を変更します
         配信者に対しロールを付与することで配信者と指定します"""
 
-        await self.channel.edit(overwrites=overwrites(streamer))
+        await self.channel.edit(overwrites=self.overwrites(streamer))
 
     async def turn_off_auto_delete(self) -> None:
         """配信部屋の自動削除機能をオフにします"""
@@ -97,6 +97,7 @@ class StreamingManagementPanel(discord.ui.View):
     async def remove_function(self, interaction: discord.Interaction, button: discord.ui.Button):
         """配信の自動削除機能をオフにします
         配信者でない人が操作するとエラーを返します"""
+
         if await StatusCheck(interaction).is_in_voice_channel() is True:
             await StreamingManagementFunctions(interaction.user.voice.channel).turn_off_auto_delete()
             await interaction.response.send_message('配信の自動削除機能を無効化しました', ephemeral=True, delete_after=15)
@@ -137,6 +138,13 @@ class StreamingManagement(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
+    @staticmethod
+    def overwrites(streamer: discord.member) -> dict[Any, PermissionOverwrite]:
+        """配信部屋のパーミッションを変更します"""
+
+        overwrite = {streamer: discord.PermissionOverwrite(mute_members=True)}
+        return overwrite
+
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.member, before: discord.VoiceState,
                                     after: discord.VoiceState):
@@ -147,7 +155,7 @@ class StreamingManagement(commands.Cog):
             category_id = 1044542086734696458
             category = streamer.guild.get_channel(category_id)
             streaming_channel = await category.create_voice_channel(name=f"{streamer.display_name}",
-                                                                    overwrites=overwrites(streamer))
+                                                                    overwrites=self.overwrites(streamer))
             await streamer.move_to(streaming_channel)
 
         async def CloseStreamingChannel(listener: discord.member, streaming_channel: discord.channel):
