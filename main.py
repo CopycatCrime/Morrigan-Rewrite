@@ -9,14 +9,15 @@ import cogs.streaming as streaming
 
 intent = discord.Intents.all()
 
+
 class Morrigan(commands.Bot):
     def __init__(self, **kwargs):
         intents = discord.Intents.all()
-        super().__init__(command_prefix=commands.when_mentioned_or('$'), intents=intents, **kwargs, pm_help=None, help_attrs=dict(hidden=True))
-
+        super().__init__(command_prefix=commands.when_mentioned_or('$'), intents=intents, **kwargs, pm_help=None,
+                         help_attrs=dict(hidden=True))
 
     async def setup_hook(self) -> None:
-        self.add_view(streaming.PersistentView())
+        self.add_view(streaming.StreamingManagementPanel())
         for extension in DiscordBot.cogs:
             try:
                 await self.load_extension(extension)
@@ -37,7 +38,9 @@ class Morrigan(commands.Bot):
         error_msg = "```py\n" + error_msg + "\n```"
         await ctx.send(error_msg)
 
+
 bot = Morrigan()
+
 
 # write general commands here
 
@@ -45,5 +48,6 @@ bot = Morrigan()
 async def hello(interaction: discord.Interaction):
     """Says hello!"""
     await interaction.response.send_message(f'Hi, {interaction.user.mention}')
+
 
 bot.run(DiscordBot.token)
