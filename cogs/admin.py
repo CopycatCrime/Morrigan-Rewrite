@@ -6,7 +6,7 @@ import io
 
 
 class Admin(commands.Cog):
-    """Admin-only commands that make the bot dynamic."""
+    """運営専用のコマンドです"""
 
     def __init__(self, bot):
         self.bot = bot
