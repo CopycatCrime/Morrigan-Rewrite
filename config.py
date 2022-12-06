@@ -7,4 +7,3 @@ class DiscordBot:
         "cogs.admin",
         "cogs.streaming"
     ]
-

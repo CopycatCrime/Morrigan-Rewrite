@@ -1,31 +1,31 @@
 from typing import Any
 import discord
-from discord import PermissionOverwrite
 from discord.ext import commands
 
 
 class StatusCheck:
     def __init__(self, interaction: discord.Interaction):
         self.interaction = interaction
+        self.user = interaction.user
 
     async def is_in_voice_channel(self) -> bool:
         """配信に参加しているかどうかを判定します
         配信者であるかどうかの判定は行いません"""
 
-        if not self.interaction.user.voice is None and self.interaction.user.voice.channel.category_id == 1044542086734696458:
+        if not self.user.voice is None and self.user.voice.channel.category_id == 1044542086734696458:
             return True
-        await self.interaction.response.send_message('配信に参加していないため操作を完了することができません。', ephemeral=True,
-                                                     delete_after=15)
+        await self.interaction.response.send_message('配信に参加していないため操作を完了することができません。',
+                                                     ephemeral=True, delete_after=15)
         return False
 
     async def is_streamer(self) -> bool:
         """配信者であるかどうかの判定を行います
         is_in_voice_channelの実行後の使用に限られます"""
 
-        if self.interaction.user.voice.channel.overwrites_for(self.interaction.user).mute_members:
+        if self.user.voice.channel.overwrites_for(self.user).mute_members:
             return True
-        await self.interaction.response.send_message('あなたはこのチャンネルの配信者でないためこの操作を完了することができません。', ephemeral=True,
-                                                     delete_after=15)
+        await self.interaction.response.send_message('あなたはこのチャンネルの配信者でないためこの操作を完了することができません。',
+                                                     ephemeral=True, delete_after=15)
         return False
 
 
@@ -140,7 +140,7 @@ class StreamingManagement(commands.Cog):
 
     @staticmethod
     def overwrites(streamer: discord.member):
-        """配信部屋のパーミッションを変更します"""
+        """配信部屋の権限を返します"""
 
         overwrite = {streamer: discord.PermissionOverwrite(mute_members=True)}
         return overwrite

@@ -42,12 +42,25 @@ class Morrigan(commands.Bot):
 bot = Morrigan()
 
 
-# write general commands here
+@bot.tree.context_menu(name='メッセージを報告する')
+async def report_message(interaction: discord.Interaction, message: discord.Message):
+    await interaction.response.send_message(
+        f'{message.author.mention}によるメッセージをモデレータに対し報告を行いました。', ephemeral=True
+    )
 
-@bot.tree.command()
-async def hello(interaction: discord.Interaction):
-    """Says hello!"""
-    await interaction.response.send_message(f'Hi, {interaction.user.mention}')
+    log_channel = interaction.guild.get_channel(1048172287817416744)
+
+    embed = discord.Embed(title='報告が行われました')
+    if message.content:
+        embed.description = message.content
+
+    embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
+    embed.timestamp = message.created_at
+
+    url_view = discord.ui.View()
+    url_view.add_item(discord.ui.Button(label='メッセージへ', style=discord.ButtonStyle.url, url=message.jump_url))
+
+    await log_channel.send(embed=embed, view=url_view)
 
 
 bot.run(DiscordBot.token)
